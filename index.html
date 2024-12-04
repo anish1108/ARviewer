@@ -11,25 +11,29 @@
     <!-- AR Scene -->
     <a-scene embedded arjs>
       <!-- Overlay Image -->
-       <h1>hello</h1>
-       <h1>hello</h1>
-       <h1>hello</h1>
-       <h1>hello</h1>
-       <h1>hello</h1>
-       <h1>hello</h1>
-       <h1>hello</h1>
-       <h1>hello</h1>
-       <h1>hello</h1>
-       
       <a-image 
-        src="img.jpg" 
-        position="1 1 -25" 
-        width="10" 
-        height="20">
+        id="imagecontainer"
+        src="img.jpg"
+        position="0 0 -3" 
+        width="3.5" 
+        height="6.125"> <!-- Aspect ratio maintained -->
       </a-image>
-
+    
       <!-- Camera -->
-      <a-camera position="0 0 0"></a-camera>
+      <a-camera id="cameracontainer" position="0 0 0"></a-camera>
     </a-scene>
+    
+    <style>
+      a-scene {
+        width: 100vw; /* Full screen width */
+        height: 100vh; /* Full screen height */
+      }
+    
+      #imagecontainer {
+        width: 70vw; /* 70% of the screen width */
+        height: auto; /* Maintain aspect ratio */
+      }
+    </style>
+    
   </body>
 </html>

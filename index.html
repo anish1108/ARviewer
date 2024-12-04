@@ -1,44 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>A-Frame AR.js Scene</title>
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.rawgit.com/jeromeetienne/ar.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
-</head>
-<body style="margin: 0; overflow: hidden;">
-  <a-scene
-    embedded
-    arjs
-    vr-mode-ui="enabled: false;"
-    renderer="logarithmicDepthBuffer: true;"
-  >
-    <!-- Overlay Image -->
-    <a-image 
-      id="imagecontainer"
-      src="img2.jpg"
-      position="0 0 -2" 
-      width="2" 
-      height="3">
-    </a-image>
+<html>
+  <head>
+    <title>AR Image Viewer</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/ar.js/aframe/build/aframe-ar.min.js"></script>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <!-- AR Scene -->
+    <a-scene embedded arjs>
+      <!-- Overlay Image -->
+      <a-image 
+        src="https://yourwebsite.com/path-to-image.png" 
+        position="0 0 -2" 
+        width="1.5" 
+        height="1">
+      </a-image>
 
-    <!-- AR.js Camera -->
-    <a-marker-camera preset="hiro"></a-marker-camera>
-  </a-scene>
-
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      height: 100%;
-      width: 100%;
-    }
-    a-scene {
-      width: 100vw;
-      height: 100vh;
-    }
-  </style>
-</body>
+      <!-- Camera -->
+      <a-camera position="0 0 0"></a-camera>
+    </a-scene>
+  </body>
 </html>

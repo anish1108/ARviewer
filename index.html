@@ -1,41 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR AR Scene</title>
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.rawgit.com/aframevr/aframe-ar/1.7.0/dist/aframe-ar.min.js"></script>
-</head>
-<body style="margin: 0; overflow: hidden;">
-  <a-scene
-    embedded
-    vr-mode-ui="enabled: false"
-    renderer="logarithmicDepthBuffer: true;"
-  >
-    <!-- Overlay Image -->
-    <a-image 
-      id="imagecontainer"
-      src="img.jpg"
-      position="0 0 -3" 
-      width="10" 
-      height="30">
-    </a-image>
+<html>
+  <head>
+    <title>WebXR AR with 2D Image</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r146/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/webxr/ARButton.js"></script>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <script>
+      // Step 1: Initialize Scene, Camera, and Renderer
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
 
-    <!-- WebXR AR Camera -->
-    <a-entity 
-      camera
-      position="0 0 0"
-      look-controls 
-      webxr="optionalFeatures: hit-test;">
-    </a-entity>
-  </a-scene>
+      // Step 2: Add AR Button
+      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
-  <style>
-    a-scene {
-      width: 100vw; /* Full screen width */
-      height: 100vh; /* Full screen height */
-    }
-  </style>
-</body>
+      // Step 3: Create a Plane with the 2D Image
+      const textureLoader = new THREE.TextureLoader();
+      const texture = textureLoader.load('img.jpg'); // Replace with your image URL
+
+      const planeGeometry = new THREE.PlaneGeometry(0.5, 0.7); // Adjust size (width x height)
+      const planeMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+      const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+      plane.visible = false; // Initially hidden
+      scene.add(plane);
+
+      // Step 4: Handle Hit Testing
+      let hitTestSource = null;
+      let localReferenceSpace = null;
+
+      renderer.xr.addEventListener('sessionstart', async () => {
+        const session = renderer.xr.getSession();
+        const viewerReferenceSpace = await session.requestReferenceSpace('viewer');
+        localReferenceSpace = await session.requestReferenceSpace('local');
+
+        session.requestHitTestSource({ space: viewerReferenceSpace }).then((source) => {
+          hitTestSource = source;
+        });
+      });
+
+      renderer.xr.addEventListener('sessionend', () => {
+        hitTestSource = null;
+        localReferenceSpace = null;
+      });
+
+      // Step 5: Animation Loop
+      renderer.setAnimationLoop((timestamp, frame) => {
+        if (frame) {
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+          if (hitTestResults.length > 0) {
+            const hit = hitTestResults[0];
+            const pose = hit.getPose(localReferenceSpace);
+
+            if (pose) {
+              plane.position.set(
+                pose.transform.position.x,
+                pose.transform.position.y,
+                pose.transform.position.z
+              );
+              plane.visible = true; // Show the image when a surface is detected
+            }
+          }
+        }
+
+        renderer.render(scene, camera);
+      });
+    </script>
+  </body>
 </html>

@@ -1,39 +1,38 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>AR Image Viewer</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/ar.js/aframe/build/aframe-ar.min.js"></script>
-  </head>
-  <body style="margin: 0; overflow: hidden;">
 
-    <!-- <h1>hello ji</h1> -->
-    <!-- AR Scene -->
-    <a-scene embedded arjs>
-      <!-- Overlay Image -->
-      <a-image 
-        id="imagecontainer"
-        src="img.jpg"
-        position="0 0 -10" 
-        width="6" 
-        height="8"> <!-- Aspect ratio maintained -->
-      </a-image>
-    
-      <!-- Camera -->
-      <a-camera id="cameracontainer" position="0 0 0"></a-camera>
-    </a-scene>
-    
-    <style>
-      a-scene {
-        width: 100vw; /* Full screen width */
-        height: 100vh; /* Full screen height */
-      }
-    
-      #imagecontainer {
-        width: 70vw; /* 70% of the screen width */
-        height: auto; /* Maintain aspect ratio */
-      }
-    </style>
-    
-  </body>
+<head>
+  <title>AR Image Viewer</title>
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/ar.js/aframe/build/aframe-ar.min.js"></script>
+</head>
+
+<body style="margin: 0; overflow: hidden;">
+
+  <!-- <h1>hello ji</h1> -->
+  <!-- AR Scene -->
+  <a-scene embedded arjs>
+    <!-- Overlay Image -->
+    <a-image 
+      id="imagecontainer"
+      src="img2.jpg"
+      position="0 0 -3" 
+      width="10" 
+      height="30">
+    </a-image>
+  
+    <!-- Camera -->
+    <a-camera id="cameracontainer" position="0 0 0"></a-camera>
+  </a-scene>
+  
+  <style>
+    a-scene {
+      width: 100vw; /* Full screen width */
+      height: 100vh; /* Full screen height */
+    }
+  </style>
+  
+
+</body>
+
 </html>

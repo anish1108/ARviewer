@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebXR AR Scene</title>
+  <title>A-Frame AR.js Scene</title>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.rawgit.com/jeromeetienne/ar.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
 </head>
 <body style="margin: 0; overflow: hidden;">
   <a-scene
     embedded
-    vr-mode-ui="enabled: false"
-    renderer="logarithmicDepthBuffer: true;"
     arjs
+    vr-mode-ui="enabled: false;"
+    renderer="logarithmicDepthBuffer: true;"
   >
     <!-- Overlay Image -->
     <a-image 
@@ -22,8 +23,8 @@
       height="3">
     </a-image>
 
-    <!-- AR Camera -->
-    <a-entity camera position="0 0 0" look-controls></a-entity>
+    <!-- AR.js Camera -->
+    <a-marker-camera preset="hiro"></a-marker-camera>
   </a-scene>
 
   <style>
@@ -35,8 +36,8 @@
       width: 100%;
     }
     a-scene {
-      width: 100vw; /* Full screen width */
-      height: 100vh; /* Full screen height */
+      width: 100vw;
+      height: 100vh;
     }
   </style>
 </body>

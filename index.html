@@ -1,37 +1,71 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Mobile AR Image</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js/aframe/build/aframe-ar.min.js"></script>
-  </head>
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;">
-      <!-- Image to display -->
-      <a-image 
-        id="image" 
-        src="img.jpg" 
-        position="0 1 -3">
-      </a-image>
-      <a-camera></a-camera>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAR 3D Interaction</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        .arjs-loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- AR.js Scene -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+        <!-- Marker-based AR (use a Hiro marker) -->
+        <a-marker preset="hiro">
+            <!-- Add a 3D model (GLB format) -->
+            <a-entity
+                id="3d-model"
+                gltf-model="url(obj.glb)"
+                scale="0.5 0.5 0.5"
+                position="0 0 0"
+                rotation="0 0 0">
+            </a-entity>
+        </a-marker>
+        <!-- Camera -->
+        <a-entity camera></a-entity>
     </a-scene>
 
-    <script>
-      // Dynamically adjust image size based on screen width
-      const isMobile = window.innerWidth <= 768; // Typical breakpoint for mobile
-      const imageElement = document.getElementById("image");
+    <!-- Loading Message -->
+    <div class="arjs-loader">Loading AR experience...</div>
 
-      if (isMobile) {
-        // Increase size for mobile
-        imageElement.setAttribute("width", "3"); // Wider image
-        imageElement.setAttribute("height", "2"); // Maintain aspect ratio
-      } else {
-        // Default size for larger screens
-        imageElement.setAttribute("width", "2");
-        imageElement.setAttribute("height", "1.2");
-      }
+    <!-- Interaction Script -->
+    <script>
+        // Wait for the scene to load
+        document.querySelector('a-scene').addEventListener('loaded', () => {
+            // Hide the loader
+            document.querySelector('.arjs-loader').style.display = 'none';
+
+            // Get the 3D model
+            const model = document.querySelector('#3d-model');
+
+            // Add click/tap interaction
+            model.addEventListener('click', () => {
+                // Rotate the model by 90 degrees on the Y-axis
+                const currentRotation = model.getAttribute('rotation');
+                model.setAttribute('rotation', {
+                    x: currentRotation.x,
+                    y: currentRotation.y + 90,
+                    z: currentRotation.z
+                });
+            });
+        });
     </script>
-  </body>
+</body>
 </html>

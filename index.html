@@ -3,22 +3,21 @@
 <head>
     <title>AR Menu</title>
     <style>
-        #scanner-container { width: 100%; height: 60vh; }
-        #menu { display: none; padding: 20px; }
-        .menu-item { cursor: pointer; padding: 10px; margin: 5px; background: #f0f0f0; }
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .menu-item { margin: 10px; padding: 15px; background: #f0f0f0; cursor: pointer; }
+        #ar-container { display: none; width: 100%; height: 100vh; }
     </style>
 </head>
 <body>
-    <!-- <div id="scanner-container">
-        <video id="camera" autoplay playsinline></video>
-    </div> -->
+    <h1>AR Menu</h1>
     <div id="menu">
-        <h2>Menu</h2>
         <div class="menu-item" onclick="loadARModel('burger')">🍔 Burger</div>
         <div class="menu-item" onclick="loadARModel('pizza')">🍕 Pizza</div>
+        <div class="menu-item" onclick="loadARModel('drink')">🥤 Drink</div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <div id="ar-container"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

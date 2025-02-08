@@ -1,64 +1,64 @@
-let video = document.getElementById('camera');
-let menu = document.getElementById('menu');
+let scene, camera, renderer, arSession;
 
-// Step 1: Access the camera and scan QR codes
-async function startQRScanner() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        video.srcObject = stream;
-        video.play();
-        requestAnimationFrame(scanQR);
-    } catch (err) {
-        console.error("Camera access denied:", err);
-    }
-}
-
-// Step 2: QR code scanning logic
-function scanQR() {
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
-
-    if (qrCode) {
-        // Hide scanner and show menu
-        document.getElementById('scanner-container').style.display = 'none';
-        menu.style.display = 'block';
-    }
-    requestAnimationFrame(scanQR);
-}
-
-// Step 3: Load AR model using Three.js and WebXR
-async function loadARModel(modelName) {
-    // Initialize Three.js scene
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ alpha: true });
+// Initialize Three.js and WebXR
+function initAR() {
+    // Set up the scene
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true; // Enable WebXR
-    document.body.appendChild(renderer.domElement);
+    document.getElementById('ar-container').appendChild(renderer.domElement);
 
-    // Load 3D model (replace with your own model URL)
-    const loader = new THREE.GLTFLoader();
-    loader.load(`models/${modelName}.glb`, (gltf) => {
-        scene.add(gltf.scene);
-    });
+    // Add lighting
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(1, 1, 1).normalize();
+    scene.add(light);
 
-    // Enable AR
-    renderer.xr.addEventListener('sessionstart', () => {
-        // Place model where user taps
-        renderer.domElement.addEventListener('click', (e) => {
-            const position = new THREE.Vector3(0, 0, -0.5);
-            scene.children[0].position.copy(position);
-        });
-    });
+    // Start the AR session
+    startARSession();
+}
 
-    // Start AR session
+// Start AR session
+async function startARSession() {
     const session = await navigator.xr.requestSession('immersive-ar');
     renderer.xr.setSession(session);
+
+    // Hide the menu and show the AR container
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('ar-container').style.display = 'block';
+
+    // Render the scene
+    renderer.setAnimationLoop(() => {
+        renderer.render(scene, camera);
+    });
 }
 
-// Start the app
-startQRScanner();
+// Load 3D model into the AR scene
+function loadARModel(modelName) {
+    // Clear previous model
+    while (scene.children.length > 0) {
+        scene.remove(scene.children[0]);
+    }
+
+    // Load the 3D model
+    const loader = new THREE.GLTFLoader();
+    loader.load(`models/${modelName}.glb`, (gltf) => {
+        const model = gltf.scene;
+        model.position.set(0, 0, -0.5); // Position the model in front of the camera
+        scene.add(model);
+    });
+}
+
+// Initialize AR when an item is clicked
+function loadARModel(modelName) {
+    initAR(); // Initialize AR
+    loadARModel(modelName); // Load the selected model
+}
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});

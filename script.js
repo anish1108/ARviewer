@@ -1,7 +1,13 @@
-let scene, camera, renderer, arSession;
+let scene, camera, renderer, arSession, currentModel;
 
 // Initialize Three.js and WebXR
 function initAR() {
+    // Dispose of the old renderer if it exists
+    if (renderer) {
+        renderer.dispose();
+        document.getElementById('ar-container').removeChild(renderer.domElement);
+    }
+
     // Set up the scene
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -21,8 +27,13 @@ function initAR() {
 
 // Start AR session
 async function startARSession() {
-    const session = await navigator.xr.requestSession('immersive-ar');
-    renderer.xr.setSession(session);
+    if (arSession) {
+        // End the previous AR session if it exists
+        arSession.end();
+    }
+
+    arSession = await navigator.xr.requestSession('immersive-ar');
+    renderer.xr.setSession(arSession);
 
     // Hide the menu and show the AR container
     document.getElementById('menu').style.display = 'none';
@@ -36,29 +47,54 @@ async function startARSession() {
 
 // Load 3D model into the AR scene
 function loadARModel(modelName) {
+    // Ensure the scene is initialized
+    if (!scene) {
+        console.error("Scene is not initialized. Call initAR() first.");
+        return;
+    }
+
     // Clear previous model
-    while (scene.children.length > 0) {
-        scene.remove(scene.children[0]);
+    if (currentModel) {
+        scene.remove(currentModel);
     }
 
     // Load the 3D model
     const loader = new THREE.GLTFLoader();
     loader.load(`models/${modelName}.glb`, (gltf) => {
-        const model = gltf.scene;
-        model.position.set(0, 0, -0.5); // Position the model in front of the camera
-        scene.add(model);
+        currentModel = gltf.scene;
+        currentModel.position.set(0, 0, -0.5); // Position the model in front of the camera
+        scene.add(currentModel);
+    }, undefined, (error) => {
+        console.error("Error loading 3D model:", error);
     });
 }
 
-// Initialize AR when an item is clicked
-function loadARModel(modelName) {
-    initAR(); // Initialize AR
-    loadARModel(modelName); // Load the selected model
-}
+// Handle menu item clicks
+document.querySelectorAll('.menu-item').forEach(item => {
+    item.addEventListener('click', () => {
+        const modelName = item.getAttribute('data-model');
+        initAR(); // Initialize AR
+        loadARModel(modelName); // Load the selected model
+    });
+});
 
 // Handle window resize
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    if (camera) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+    }
+    if (renderer) {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+});
+
+// Clean up when leaving the page
+window.addEventListener('beforeunload', () => {
+    if (renderer) {
+        renderer.dispose();
+    }
+    if (arSession) {
+        arSession.end();
+    }
 });

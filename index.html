@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AR Menu Viewer</title>
+    <title>AR Image Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -15,7 +15,7 @@
             background: rgba(255, 255, 255, 0.8);
             padding: 10px;
             display: flex;
-            overflow-x: auto;
+            justify-content: center;
             gap: 10px;
         }
 
@@ -29,107 +29,68 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        .menu-item img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 5px;
-            margin-bottom: 5px;
-        }
-
-        .menu-item p {
-            margin: 5px 0;
-            font-family: Arial, sans-serif;
-        }
-
-        #place-button {
+        #instructions {
             position: fixed;
             top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            background: #4CAF50;
-            color: white;
-            border: none;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
             border-radius: 5px;
-            cursor: pointer;
-            z-index: 100;
-            display: none;
+            z-index: 1000;
+            text-align: center;
         }
     </style>
 </head>
 <body style="margin: 0; overflow: hidden;">
-    <button id="place-button">Place Object</button>
+    <div id="instructions">Point your camera at a flat surface</div>
 
     <div id="menu-container">
-        <div class="menu-item" onclick="selectModel('pizza', '#pizza-model')">
-            <img src="https://via.placeholder.com/80?text=Pizza" alt="Pizza">
-            <p>Pizza</p>
+        <div class="menu-item" onclick="toggleImage()">
+            Show/Hide Image
         </div>
     </div>
 
     <a-scene 
         embedded
-        vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true;"
-        arjs="trackingMethod: best;
-              sourceType: webcam;
-              debugUIEnabled: false;
-              patternRatio: 0.75;
-              sourceWidth: window.innerWidth > window.innerHeight ? 640 : 480;
-              sourceHeight: window.innerWidth > window.innerHeight ? 480 : 640;">
+        arjs='sourceType: webcam; 
+              debugUIEnabled: false;'
+        vr-mode-ui="enabled: false">
 
-        <a-assets>
-            <a-asset-item id="pizza-model" src="pizza.glb"></a-asset-item>
-        </a-assets>
+        <!-- Using a simple plane with an image -->
+        <a-marker type="pattern" url="pattern-marker.patt">
+            <a-image
+                id="test-image"
+                src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/pinball.jpg"
+                position="0 0 0"
+                rotation="-90 0 0"
+                scale="1 1 1"
+                visible="false">
+            </a-image>
+        </a-marker>
 
-        <a-entity id="model-container"></a-entity>
-        
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        let selectedModel = null;
-        const placeButton = document.getElementById('place-button');
-        const modelContainer = document.getElementById('model-container');
-        let placedModels = [];
+        const testImage = document.querySelector('#test-image');
+        let isVisible = false;
 
-        function selectModel(modelName, modelUrl) {
-            selectedModel = { name: modelName, url: modelUrl };
-            placeButton.style.display = 'block';
+        function toggleImage() {
+            isVisible = !isVisible;
+            testImage.setAttribute('visible', isVisible);
         }
 
-        placeButton.addEventListener('click', () => {
-            if (!selectedModel) return;
-
-            const camera = document.querySelector('[camera]');
-            const worldPos = new THREE.Vector3();
-            worldPos.setFromMatrixPosition(camera.object3D.matrixWorld);
-            
-            const entity = document.createElement('a-entity');
-            entity.setAttribute('gltf-model', selectedModel.url);
-            
-            // Place the model 1.5 meters in front of the camera
-            entity.setAttribute('position', `0 0 -1.5`);
-            entity.setAttribute('scale', '0.2 0.2 0.2');
-            
-            modelContainer.appendChild(entity);
-            placedModels.push(entity);
+        // Handle marker detection
+        const marker = document.querySelector('a-marker');
+        
+        marker.addEventListener('markerFound', () => {
+            console.log('Marker Found');
         });
 
-        // Handle device orientation permission for iOS
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            document.body.addEventListener('click', function() {
-                DeviceOrientationEvent.requestPermission()
-                    .then(function(response) {
-                        if (response == 'granted') {
-                            window.addEventListener('deviceorientation', function(e) {
-                                // Handle device orientation
-                            });
-                        }
-                    })
-                    .catch(console.error);
-            });
-        }
+        marker.addEventListener('markerLost', () => {
+            console.log('Marker Lost');
+        });
     </script>
 </body>
 </html>

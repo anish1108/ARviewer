@@ -62,31 +62,39 @@
     <button id="place-button">Place Object</button>
 
     <div id="menu-container">
-        <div class="menu-item" onclick="selectModel('chair', '#chair-model')">
-            <img src="https://via.placeholder.com/80?text=Chair" alt="Chair">
-            <p>Chair</p>
+        <div class="menu-item" onclick="selectModel('pizza', '#chair-model')">
+            <img src="https://via.placeholder.com/80?text=Pizza" alt="Pizza">
+            <p>Pizza</p>
         </div>
-        <div class="menu-item" onclick="selectModel('table', '#table-model')">
-            <img src="https://via.placeholder.com/80?text=Table" alt="Table">
-            <p>Table</p>
-        </div>
-        <div class="menu-item" onclick="selectModel('lamp', '#lamp-model')">
-            <img src="https://via.placeholder.com/80?text=Lamp" alt="Lamp">
-            <p>Lamp</p>
-        </div>
+        <!-- Remove other menu items for now to focus on pizza -->
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;">
+    <a-scene 
+        embedded 
+        vr-mode-ui="enabled: false"
+        arjs="sourceType: webcam; 
+              debugUIEnabled: false; 
+              sourceWidth: 1280;
+              sourceHeight: 960;
+              displayWidth: 1280;
+              displayHeight: 960;
+              maxDetectionRate: 60;
+              canvasWidth: 1280;
+              canvasHeight: 960;
+              trackingMethod: best;">
+
         <a-assets>
-            <!-- Add your 3D models here -->
             <a-asset-item id="chair-model" src="pizza.glb"></a-asset-item>
-            <a-asset-item id="table-model" src="path-to-your-table-model.glb"></a-asset-item>
-            <a-asset-item id="lamp-model" src="path-to-your-lamp-model.glb"></a-asset-item>
         </a-assets>
 
         <a-entity id="model-container"></a-entity>
         
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <a-camera 
+            position="0 0 0" 
+            look-controls="enabled: false"
+            cursor="fuse: false; rayOrigin: mouse;"
+            raycaster="far: 10000; objects: .clickable">
+        </a-camera>
     </a-scene>
 
     <script>
@@ -103,45 +111,49 @@
         placeButton.addEventListener('click', () => {
             if (!selectedModel) return;
 
-            // Get camera position and rotation
             const camera = document.querySelector('a-camera');
             const position = camera.getAttribute('position');
             const rotation = camera.getAttribute('rotation');
 
-            // Create new entity for the model
             const entity = document.createElement('a-entity');
             entity.setAttribute('gltf-model', selectedModel.url);
             
-            // Position the model 2 meters in front of the camera
+            // Adjusted distance to 1 meter instead of 2
             const radians = rotation.y * (Math.PI / 180);
-            const x = position.x - Math.sin(radians) * 2;
-            const z = position.z - Math.cos(radians) * 2;
+            const x = position.x - Math.sin(radians) * 1;
+            const z = position.z - Math.cos(radians) * 1;
             
-            entity.setAttribute('position', `${x} 0 ${z}`);
+            entity.setAttribute('position', `${x} -0.5 ${z}`); // Lowered y position
             entity.setAttribute('rotation', `0 ${rotation.y} 0`);
-            entity.setAttribute('scale', '1 1 1');
+            entity.setAttribute('scale', '0.5 0.5 0.5'); // Reduced scale
+            entity.setAttribute('class', 'clickable');
 
-            // Add model to the scene
             modelContainer.appendChild(entity);
             placedModels.push(entity);
         });
 
-        // Optional: Add touch gestures for moving placed objects
+        // Improved touch controls
         let touchStartX, touchStartY;
+        let currentModel = null;
+
         document.addEventListener('touchstart', (e) => {
+            e.preventDefault();
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
-        });
+            if (placedModels.length > 0) {
+                currentModel = placedModels[placedModels.length - 1];
+            }
+        }, { passive: false });
 
         document.addEventListener('touchmove', (e) => {
-            if (placedModels.length === 0) return;
+            e.preventDefault();
+            if (!currentModel) return;
             
-            const deltaX = (e.touches[0].clientX - touchStartX) * 0.01;
-            const deltaZ = (e.touches[0].clientY - touchStartY) * 0.01;
+            const deltaX = (e.touches[0].clientX - touchStartX) * 0.005; // Reduced sensitivity
+            const deltaZ = (e.touches[0].clientY - touchStartY) * 0.005;
             
-            const lastModel = placedModels[placedModels.length - 1];
-            const position = lastModel.getAttribute('position');
-            lastModel.setAttribute('position', {
+            const position = currentModel.getAttribute('position');
+            currentModel.setAttribute('position', {
                 x: position.x + deltaX,
                 y: position.y,
                 z: position.z + deltaZ
@@ -149,6 +161,10 @@
 
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
+        }, { passive: false });
+
+        document.addEventListener('touchend', () => {
+            currentModel = null;
         });
     </script>
 </body>

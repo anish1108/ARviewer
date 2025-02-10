@@ -3,9 +3,8 @@
 <head>
     <title>AR Menu Viewer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
     <style>
         #menu-container {
             position: fixed;
@@ -62,39 +61,30 @@
     <button id="place-button">Place Object</button>
 
     <div id="menu-container">
-        <div class="menu-item" onclick="selectModel('pizza', '#chair-model')">
+        <div class="menu-item" onclick="selectModel('pizza', '#pizza-model')">
             <img src="https://via.placeholder.com/80?text=Pizza" alt="Pizza">
             <p>Pizza</p>
         </div>
-        <!-- Remove other menu items for now to focus on pizza -->
     </div>
 
     <a-scene 
-        embedded 
+        embedded
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; 
-              debugUIEnabled: false; 
-              sourceWidth: 1280;
-              sourceHeight: 960;
-              displayWidth: 1280;
-              displayHeight: 960;
-              maxDetectionRate: 60;
-              canvasWidth: 1280;
-              canvasHeight: 960;
-              trackingMethod: best;">
+        renderer="logarithmicDepthBuffer: true;"
+        arjs="trackingMethod: best;
+              sourceType: webcam;
+              debugUIEnabled: false;
+              patternRatio: 0.75;
+              sourceWidth: window.innerWidth > window.innerHeight ? 640 : 480;
+              sourceHeight: window.innerWidth > window.innerHeight ? 480 : 640;">
 
         <a-assets>
-            <a-asset-item id="chair-model" src="pizza.glb"></a-asset-item>
+            <a-asset-item id="pizza-model" src="pizza.glb"></a-asset-item>
         </a-assets>
 
         <a-entity id="model-container"></a-entity>
         
-        <a-camera 
-            position="0 0 0" 
-            look-controls="enabled: false"
-            cursor="fuse: false; rayOrigin: mouse;"
-            raycaster="far: 10000; objects: .clickable">
-        </a-camera>
+        <a-entity camera></a-entity>
     </a-scene>
 
     <script>
@@ -111,61 +101,35 @@
         placeButton.addEventListener('click', () => {
             if (!selectedModel) return;
 
-            const camera = document.querySelector('a-camera');
-            const position = camera.getAttribute('position');
-            const rotation = camera.getAttribute('rotation');
-
+            const camera = document.querySelector('[camera]');
+            const worldPos = new THREE.Vector3();
+            worldPos.setFromMatrixPosition(camera.object3D.matrixWorld);
+            
             const entity = document.createElement('a-entity');
             entity.setAttribute('gltf-model', selectedModel.url);
             
-            // Adjusted distance to 1 meter instead of 2
-            const radians = rotation.y * (Math.PI / 180);
-            const x = position.x - Math.sin(radians) * 1;
-            const z = position.z - Math.cos(radians) * 1;
+            // Place the model 1.5 meters in front of the camera
+            entity.setAttribute('position', `0 0 -1.5`);
+            entity.setAttribute('scale', '0.2 0.2 0.2');
             
-            entity.setAttribute('position', `${x} -0.5 ${z}`); // Lowered y position
-            entity.setAttribute('rotation', `0 ${rotation.y} 0`);
-            entity.setAttribute('scale', '0.5 0.5 0.5'); // Reduced scale
-            entity.setAttribute('class', 'clickable');
-
             modelContainer.appendChild(entity);
             placedModels.push(entity);
         });
 
-        // Improved touch controls
-        let touchStartX, touchStartY;
-        let currentModel = null;
-
-        document.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            if (placedModels.length > 0) {
-                currentModel = placedModels[placedModels.length - 1];
-            }
-        }, { passive: false });
-
-        document.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (!currentModel) return;
-            
-            const deltaX = (e.touches[0].clientX - touchStartX) * 0.005; // Reduced sensitivity
-            const deltaZ = (e.touches[0].clientY - touchStartY) * 0.005;
-            
-            const position = currentModel.getAttribute('position');
-            currentModel.setAttribute('position', {
-                x: position.x + deltaX,
-                y: position.y,
-                z: position.z + deltaZ
+        // Handle device orientation permission for iOS
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            document.body.addEventListener('click', function() {
+                DeviceOrientationEvent.requestPermission()
+                    .then(function(response) {
+                        if (response == 'granted') {
+                            window.addEventListener('deviceorientation', function(e) {
+                                // Handle device orientation
+                            });
+                        }
+                    })
+                    .catch(console.error);
             });
-
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }, { passive: false });
-
-        document.addEventListener('touchend', () => {
-            currentModel = null;
-        });
+        }
     </script>
 </body>
 </html>

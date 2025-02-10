@@ -1,417 +1,153 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Menu - Interactive Experience</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <title>AR Menu Card</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.5.2/aframe-ar.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        #arView {
+        .menu-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .ui-container {
-            position: fixed;
-            width: 100%;
-            padding: 20px;
-            pointer-events: none;
-        }
-
-        .top-ui {
-            top: 0;
-        }
-
-        .bottom-ui {
-            bottom: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .menu-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
             padding: 15px;
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            max-width: 90%;
-            margin: 0 auto;
-            pointer-events: auto;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            max-height: 60vh;
+            overflow-y: auto;
+            width: 90%;
+            max-width: 400px;
         }
 
         .menu-item {
-            background: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 20px;
-            cursor: pointer;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 8px;
-            min-width: 100px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s;
+            gap: 10px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
         }
 
         .menu-item:hover {
-            transform: translateY(-2px);
+            background-color: rgba(0, 0, 0, 0.1);
         }
 
         .menu-item img {
             width: 50px;
             height: 50px;
-            object-fit: cover;
-            border-radius: 6px;
+            border-radius: 5px;
         }
 
-        .controls-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 10px;
-            display: flex;
-            gap: 10px;
-            pointer-events: auto;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .control-button {
-            background: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px;
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .control-button.active {
-            background: #4299e1;
-            color: white;
-        }
-
-        .placement-indicator {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            width: 60px;
-            height: 60px;
-            border: 3px solid #4299e1;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            display: none;
-        }
-
-        .placement-indicator::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 10px;
-            height: 10px;
-            background: #4299e1;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .status-message {
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
+        .instructions {
             position: fixed;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            pointer-events: none;
-            transition: opacity 0.3s;
-            opacity: 0;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            text-align: center;
+            font-size: 14px;
+            display: none;
         }
 
-        .status-message.visible {
-            opacity: 1;
+        #hide-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
         }
     </style>
 </head>
-<body>
-    <canvas id="arView"></canvas>
-    <div class="placement-indicator"></div>
-    <div class="status-message" id="statusMessage">Tap to place object</div>
+<body style="margin: 0; overflow: hidden;">
+    <div class="instructions">
+        Show the Hiro marker to the camera to place the selected item
+    </div>
 
-    <div class="ui-container top-ui">
-        <div class="controls-container">
-            <button class="control-button" id="moveButton" title="Move">
-                ↕
-            </button>
-            <button class="control-button" id="rotateButton" title="Rotate">
-                ↻
-            </button>
-            <button class="control-button" id="scaleButton" title="Scale">
-                ⇲
-            </button>
-            <button class="control-button" id="deleteButton" title="Delete">
-                ×
-            </button>
+    <button id="hide-button" onclick="toggleModel()">Hide Item</button>
+
+    <div class="menu-overlay">
+        <div class="menu-item" onclick="showItem('pizza', 'red', '1 0.1 1')">
+            <img src="https://via.placeholder.com/50" alt="Pizza">
+            <span>Margherita Pizza - $12.99</span>
+        </div>
+        <div class="menu-item" onclick="showItem('burger', 'brown', '0.8 0.5 0.8')">
+            <img src="https://via.placeholder.com/50" alt="Burger">
+            <span>Classic Burger - $8.99</span>
+        </div>
+        <div class="menu-item" onclick="showItem('pasta', 'yellow', '0.7 0.3 0.7')">
+            <img src="https://via.placeholder.com/50" alt="Pasta">
+            <span>Pasta Alfredo - $10.99</span>
+        </div>
+        <div class="menu-item" onclick="showItem('salad', 'green', '0.9 0.2 0.9')">
+            <img src="https://via.placeholder.com/50" alt="Salad">
+            <span>Caesar Salad - $7.99</span>
         </div>
     </div>
 
-    <div class="ui-container bottom-ui">
-        <div class="menu-container" id="menuContainer">
-            <button class="menu-item" data-model="pizza">
-                <img src="/api/placeholder/100/100" alt="Pizza">
-                <span>Pizza</span>
-            </button>
-            <button class="menu-item" data-model="icecream">
-                <img src="/api/placeholder/100/100" alt="Ice Cream">
-                <span>Ice Cream</span>
-            </button>
-            <button class="menu-item" data-model="coffee">
-                <img src="/api/placeholder/100/100" alt="Coffee">
-                <span>Coffee</span>
-            </button>
-        </div>
-    </div>
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+        <a-marker preset="hiro" id="item-marker">
+            <a-box 
+                id="item-model"
+                position="0 0.5 0" 
+                rotation="0 45 0"
+                scale="1 0.1 1"
+                material="color: red;"
+                visible="false">
+            </a-box>
+        </a-marker>
+        <a-entity camera></a-entity>
+    </a-scene>
 
     <script>
-        let camera, scene, renderer, session;
-        let reticle, controller;
-        let hitTestSource = null;
-        let hitTestSourceRequested = false;
-        let currentModel = null;
-        let transformControls;
-        let placedObjects = [];
+        let isModelVisible = false;
+        let currentItem = '';
+        const itemModel = document.querySelector('#item-model');
+        const instructions = document.querySelector('.instructions');
+        const hideButton = document.querySelector('#hide-button');
 
-        // Initialize AR scene
-        async function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+        function showItem(itemName, color, scale) {
+            itemModel.setAttribute('visible', true);
+            itemModel.setAttribute('material', 'color', color);
+            itemModel.setAttribute('scale', scale);
+            currentItem = itemName;
+            isModelVisible = true;
+            instructions.style.display = 'block';
+            hideButton.style.display = 'block';
+            hideButton.textContent = `Hide ${itemName.charAt(0).toUpperCase() + itemName.slice(1)}`;
+        }
 
-            renderer = new THREE.WebGLRenderer({
-                antialias: true,
-                alpha: true,
-                canvas: document.querySelector('#arView')
-            });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.xr.enabled = true;
+        function toggleModel() {
+            isModelVisible = !isModelVisible;
+            itemModel.setAttribute('visible', isModelVisible);
+            hideButton.textContent = isModelVisible ? 
+                `Hide ${currentItem.charAt(0).toUpperCase() + currentItem.slice(1)}` : 
+                `Show ${currentItem.charAt(0).toUpperCase() + currentItem.slice(1)}`;
+            instructions.style.display = isModelVisible ? 'block' : 'none';
+        }
 
-            // Lighting
-            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-            light.position.set(0.5, 1, 0.25);
-            scene.add(light);
-
-            // Reticle
-            reticle = new THREE.Mesh(
-                new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
-                new THREE.MeshBasicMaterial()
-            );
-            reticle.matrixAutoUpdate = false;
-            reticle.visible = false;
-            scene.add(reticle);
-
-            // Controller
-            controller = renderer.xr.getController(0);
-            controller.addEventListener('select', onSelect);
-            scene.add(controller);
-
-            // Transform Controls
-            transformControls = new THREE.TransformControls(camera, renderer.domElement);
-            transformControls.addEventListener('dragging-changed', function (event) {
-                controller.userData.isSelecting = !event.value;
-            });
-            scene.add(transformControls);
-
-            // Start AR session
-            try {
-                session = await navigator.xr.requestSession('immersive-ar', {
-                    requiredFeatures: ['hit-test']
-                });
-                session.addEventListener('end', onSessionEnd);
-                renderer.xr.setSession(session);
-                
-                document.querySelector('.placement-indicator').style.display = 'block';
-                showStatus('Select an item to place');
-            } catch (error) {
-                console.error('Failed to start AR session:', error);
-                showStatus('AR not supported on this device');
+        // Handle marker detection
+        const marker = document.querySelector('#item-marker');
+        marker.addEventListener('markerFound', () => {
+            if (isModelVisible) {
+                itemModel.setAttribute('visible', true);
             }
-        }
-
-        // Load 3D model
-        async function loadModel(modelName) {
-            const loader = new THREE.GLTFLoader();
-            try {
-                const gltf = await loader.loadAsync(`/models/${modelName}.glb`);
-                const model = gltf.scene;
-                model.scale.setScalar(0.5);
-                return model;
-            } catch (error) {
-                console.error('Error loading model:', error);
-                showStatus('Failed to load model');
-                return null;
-            }
-        }
-
-        // Handle model placement
-        function onSelect() {
-            if (currentModel && reticle.visible) {
-                const model = currentModel.clone();
-                model.position.setFromMatrixPosition(reticle.matrix);
-                scene.add(model);
-                placedObjects.push(model);
-                
-                showStatus('Object placed! Use controls to adjust');
-            }
-        }
-
-        // Update reticle and hit testing
-        function updateHitTest(frame, referenceSpace) {
-            if (!hitTestSourceRequested) {
-                session.requestReferenceSpace('viewer').then((referenceSpace) => {
-                    session.requestHitTestSource({ space: referenceSpace }).then((source) => {
-                        hitTestSource = source;
-                    });
-                });
-                hitTestSourceRequested = true;
-            }
-
-            if (hitTestSource) {
-                const hitTestResults = frame.getHitTestResults(hitTestSource);
-                if (hitTestResults.length) {
-                    const hit = hitTestResults[0];
-                    const pose = hit.getPose(referenceSpace);
-                    reticle.visible = true;
-                    reticle.matrix.fromArray(pose.transform.matrix);
-                } else {
-                    reticle.visible = false;
-                }
-            }
-        }
-
-        // Handle session end
-        function onSessionEnd() {
-            hitTestSourceRequested = false;
-            hitTestSource = null;
-            session = null;
-            showStatus('AR session ended');
-        }
-
-        // Show status message
-        function showStatus(message) {
-            const statusElement = document.getElementById('statusMessage');
-            statusElement.textContent = message;
-            statusElement.classList.add('visible');
-            setTimeout(() => {
-                statusElement.classList.remove('visible');
-            }, 2000);
-        }
-
-        // Initialize UI controls
-        function initControls() {
-            const moveButton = document.getElementById('moveButton');
-            const rotateButton = document.getElementById('rotateButton');
-            const scaleButton = document.getElementById('scaleButton');
-            const deleteButton = document.getElementById('deleteButton');
-
-            moveButton.addEventListener('click', () => {
-                if (transformControls.object) {
-                    transformControls.setMode('translate');
-                    setActiveControl(moveButton);
-                }
-            });
-
-            rotateButton.addEventListener('click', () => {
-                if (transformControls.object) {
-                    transformControls.setMode('rotate');
-                    setActiveControl(rotateButton);
-                }
-            });
-
-            scaleButton.addEventListener('click', () => {
-                if (transformControls.object) {
-                    transformControls.setMode('scale');
-                    setActiveControl(scaleButton);
-                }
-            });
-
-            deleteButton.addEventListener('click', () => {
-                if (transformControls.object) {
-                    const object = transformControls.object;
-                    scene.remove(object);
-                    transformControls.detach();
-                    placedObjects = placedObjects.filter(obj => obj !== object);
-                    showStatus('Object deleted');
-                }
-            });
-        }
-
-        // Set active control button
-        function setActiveControl(activeButton) {
-            document.querySelectorAll('.control-button').forEach(button => {
-                button.classList.remove('active');
-            });
-            activeButton.classList.add('active');
-        }
-
-        // Initialize menu items
-        function initMenu() {
-            document.querySelectorAll('.menu-item').forEach(item => {
-                item.addEventListener('click', async () => {
-                    const modelName = item.dataset.model;
-                    showStatus('Loading model...');
-                    currentModel = await loadModel(modelName);
-                    if (currentModel) {
-                        showStatus('Tap to place object');
-                    }
-                });
-            });
-        }
-
-        // Animation loop
-        function animate() {
-            renderer.setAnimationLoop((timestamp, frame) => {
-                if (frame) {
-                    const referenceSpace = renderer.xr.getReferenceSpace();
-                    if (referenceSpace) {
-                        updateHitTest(frame, referenceSpace);
-                    }
-                }
-                renderer.render(scene, camera);
-            });
-        }
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Initialize everything
-        init().then(() => {
-            initControls();
-            initMenu();
-            animate();
+        marker.addEventListener('markerLost', () => {
+            itemModel.setAttribute('visible', false);
         });
     </script>
 </body>

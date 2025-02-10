@@ -1,23 +1,256 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AR Menu</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Menu - Real World View</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webxr/0.1.0/webxr.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .menu-item { margin: 10px; padding: 15px; background: #f0f0f0; cursor: pointer; }
-        #ar-container { display: none; width: 100%; height: 100vh; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+        }
+
+        .menu-container {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .menu-item {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        #arCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #startAR {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 1000;
+        }
+
+        .placement-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 50px;
+            height: 50px;
+            border: 2px solid #4299e1;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: none;
+            z-index: 999;
+        }
     </style>
 </head>
 <body>
-    <h1 onclick="alertfun()">AR Menu</h1>
-    <div id="menu">
-        <div class="menu-item" onclick="loadARModel('burger')">🍔 Burger</div>
-        <div class="menu-item" onclick="loadARModel('pizza')">🍕 Pizza</div>
-        <div class="menu-item" onclick="loadARModel('drink')">🥤 Drink</div>
-    </div>
-    <div id="ar-container"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="script.js"></script>
+    <canvas id="arCanvas"></canvas>
+    <div class="placement-indicator" id="placementIndicator"></div>
+    <button id="startAR">Start AR Experience</button>
+    
+    <div class="menu-container" id="menuContainer"></div>
+
+    <script>
+        let currentModel = null;
+        let renderer, scene, camera, xrSession;
+        let placementIndicator;
+        let isPlacing = false;
+
+        const menuItems = [
+            { id: 1, name: 'Pizza', modelPath: '/pizza.glb' },
+            { id: 2, name: 'Ice Cream', modelPath: '/icecream.glb' },
+            { id: 3, name: 'Coffee', modelPath: '/coffee.glb' }
+        ];
+
+        // Initialize Three.js scene
+        function initAR() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({
+                canvas: document.querySelector('#arCanvas'),
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(0, 10, 0);
+            scene.add(directionalLight);
+
+            // Create placement indicator
+            placementIndicator = new THREE.Mesh(
+                new THREE.RingGeometry(0.15, 0.2, 32),
+                new THREE.MeshBasicMaterial({ color: 0x4299e1 })
+            );
+            placementIndicator.rotation.x = -Math.PI / 2;
+            scene.add(placementIndicator);
+        }
+
+        // Load 3D model
+        async function loadModel(modelPath) {
+            const loader = new THREE.GLTFLoader();
+            try {
+                const gltf = await loader.loadAsync(modelPath);
+                const model = gltf.scene;
+                model.scale.set(0.1, 0.1, 0.1); // Adjust scale as needed
+                return model;
+            } catch (error) {
+                console.error('Error loading model:', error);
+                return null;
+            }
+        }
+
+        // Start AR session
+        async function startAR() {
+            try {
+                if (!navigator.xr) {
+                    alert('WebXR not supported on this device');
+                    return;
+                }
+
+                const session = await navigator.xr.requestSession('immersive-ar', {
+                    requiredFeatures: ['hit-test']
+                });
+
+                session.addEventListener('end', () => {
+                    xrSession = null;
+                    document.getElementById('startAR').style.display = 'block';
+                });
+
+                renderer.xr.setSession(session);
+                xrSession = session;
+                document.getElementById('startAR').style.display = 'none';
+                document.getElementById('placementIndicator').style.display = 'block';
+                
+                session.addEventListener('select', placeObject);
+            } catch (error) {
+                console.error('Error starting AR session:', error);
+                alert('Failed to start AR session');
+            }
+        }
+
+        // Place object in real world
+        function placeObject(event) {
+            if (!currentModel || !isPlacing) return;
+
+            const position = new THREE.Vector3();
+            placementIndicator.getWorldPosition(position);
+            
+            const model = currentModel.clone();
+            model.position.copy(position);
+            scene.add(model);
+            
+            isPlacing = false;
+            placementIndicator.visible = false;
+        }
+
+        // Update placement indicator
+        function updatePlacementIndicator(frame) {
+            if (!isPlacing) return;
+
+            const referenceSpace = renderer.xr.getReferenceSpace();
+            const viewerPose = frame.getViewerPose(referenceSpace);
+
+            if (viewerPose) {
+                const hitTestSource = frame.createHitTestSource({
+                    space: viewerPose.transform
+                });
+
+                if (hitTestSource) {
+                    const hitTestResults = frame.getHitTestResults(hitTestSource);
+                    if (hitTestResults.length > 0) {
+                        const hit = hitTestResults[0];
+                        const pose = hit.getPose(referenceSpace);
+                        
+                        placementIndicator.visible = true;
+                        placementIndicator.position.set(
+                            pose.transform.position.x,
+                            pose.transform.position.y,
+                            pose.transform.position.z
+                        );
+                    } else {
+                        placementIndicator.visible = false;
+                    }
+                }
+            }
+        }
+
+        // Create menu items
+        function createMenu() {
+            const container = document.getElementById('menuContainer');
+            menuItems.forEach(item => {
+                const button = document.createElement('div');
+                button.className = 'menu-item';
+                button.textContent = item.name;
+                button.onclick = async () => {
+                    if (!xrSession) {
+                        alert('Please start AR first');
+                        return;
+                    }
+                    currentModel = await loadModel(item.modelPath);
+                    if (currentModel) {
+                        isPlacing = true;
+                        placementIndicator.visible = true;
+                    }
+                };
+                container.appendChild(button);
+            });
+        }
+
+        // Initialize
+        initAR();
+        createMenu();
+
+        // Event listeners
+        document.getElementById('startAR').addEventListener('click', startAR);
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation loop
+        renderer.setAnimationLoop((timestamp, frame) => {
+            if (frame) {
+                updatePlacementIndicator(frame);
+            }
+            renderer.render(scene, camera);
+        });
+    </script>
 </body>
 </html>

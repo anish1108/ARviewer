@@ -3,39 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Menu - Real World View</title>
+    <title>AR Menu - Interactive Experience</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/webxr/0.1.0/webxr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-        body {
-            overflow: hidden;
-        }
-
-        .menu-container {
-            position: fixed;
-            bottom: 20px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            z-index: 1000;
-        }
-
-        .menu-item {
-            background: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        #arCanvas {
+        #arView {
             position: fixed;
             top: 0;
             left: 0;
@@ -43,213 +23,395 @@
             height: 100%;
         }
 
-        #startAR {
+        .ui-container {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 15px 30px;
-            background: #4299e1;
-            color: white;
+            width: 100%;
+            padding: 20px;
+            pointer-events: none;
+        }
+
+        .top-ui {
+            top: 0;
+        }
+
+        .bottom-ui {
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .menu-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            max-width: 90%;
+            margin: 0 auto;
+            pointer-events: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .menu-item {
+            background: white;
             border: none;
             border-radius: 8px;
+            padding: 12px 20px;
             cursor: pointer;
-            font-size: 18px;
-            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 100px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .menu-item img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .controls-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-button {
+            background: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-button.active {
+            background: #4299e1;
+            color: white;
         }
 
         .placement-indicator {
             position: fixed;
             top: 50%;
             left: 50%;
-            width: 50px;
-            height: 50px;
-            border: 2px solid #4299e1;
+            width: 60px;
+            height: 60px;
+            border: 3px solid #4299e1;
             border-radius: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
             display: none;
-            z-index: 999;
+        }
+
+        .placement-indicator::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background: #4299e1;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .status-message {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+
+        .status-message.visible {
+            opacity: 1;
         }
     </style>
 </head>
 <body>
-    <canvas id="arCanvas"></canvas>
-    <div class="placement-indicator" id="placementIndicator"></div>
-    <button id="startAR">Start AR Experience</button>
-    
-    <div class="menu-container" id="menuContainer"></div>
+    <canvas id="arView"></canvas>
+    <div class="placement-indicator"></div>
+    <div class="status-message" id="statusMessage">Tap to place object</div>
+
+    <div class="ui-container top-ui">
+        <div class="controls-container">
+            <button class="control-button" id="moveButton" title="Move">
+                ↕
+            </button>
+            <button class="control-button" id="rotateButton" title="Rotate">
+                ↻
+            </button>
+            <button class="control-button" id="scaleButton" title="Scale">
+                ⇲
+            </button>
+            <button class="control-button" id="deleteButton" title="Delete">
+                ×
+            </button>
+        </div>
+    </div>
+
+    <div class="ui-container bottom-ui">
+        <div class="menu-container" id="menuContainer">
+            <button class="menu-item" data-model="pizza">
+                <img src="/api/placeholder/100/100" alt="Pizza">
+                <span>Pizza</span>
+            </button>
+            <button class="menu-item" data-model="icecream">
+                <img src="/api/placeholder/100/100" alt="Ice Cream">
+                <span>Ice Cream</span>
+            </button>
+            <button class="menu-item" data-model="coffee">
+                <img src="/api/placeholder/100/100" alt="Coffee">
+                <span>Coffee</span>
+            </button>
+        </div>
+    </div>
 
     <script>
+        let camera, scene, renderer, session;
+        let reticle, controller;
+        let hitTestSource = null;
+        let hitTestSourceRequested = false;
         let currentModel = null;
-        let renderer, scene, camera, xrSession;
-        let placementIndicator;
-        let isPlacing = false;
+        let transformControls;
+        let placedObjects = [];
 
-        const menuItems = [
-            { id: 1, name: 'Pizza', modelPath: '/pizza.glb' },
-            { id: 2, name: 'Ice Cream', modelPath: '/icecream.glb' },
-            { id: 3, name: 'Coffee', modelPath: '/coffee.glb' }
-        ];
-
-        // Initialize Three.js scene
-        function initAR() {
+        // Initialize AR scene
+        async function init() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
             renderer = new THREE.WebGLRenderer({
-                canvas: document.querySelector('#arCanvas'),
                 antialias: true,
-                alpha: true
+                alpha: true,
+                canvas: document.querySelector('#arView')
             });
+            renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;
 
-            // Add lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(0, 10, 0);
-            scene.add(directionalLight);
+            // Lighting
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            light.position.set(0.5, 1, 0.25);
+            scene.add(light);
 
-            // Create placement indicator
-            placementIndicator = new THREE.Mesh(
-                new THREE.RingGeometry(0.15, 0.2, 32),
-                new THREE.MeshBasicMaterial({ color: 0x4299e1 })
+            // Reticle
+            reticle = new THREE.Mesh(
+                new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
+                new THREE.MeshBasicMaterial()
             );
-            placementIndicator.rotation.x = -Math.PI / 2;
-            scene.add(placementIndicator);
+            reticle.matrixAutoUpdate = false;
+            reticle.visible = false;
+            scene.add(reticle);
+
+            // Controller
+            controller = renderer.xr.getController(0);
+            controller.addEventListener('select', onSelect);
+            scene.add(controller);
+
+            // Transform Controls
+            transformControls = new THREE.TransformControls(camera, renderer.domElement);
+            transformControls.addEventListener('dragging-changed', function (event) {
+                controller.userData.isSelecting = !event.value;
+            });
+            scene.add(transformControls);
+
+            // Start AR session
+            try {
+                session = await navigator.xr.requestSession('immersive-ar', {
+                    requiredFeatures: ['hit-test']
+                });
+                session.addEventListener('end', onSessionEnd);
+                renderer.xr.setSession(session);
+                
+                document.querySelector('.placement-indicator').style.display = 'block';
+                showStatus('Select an item to place');
+            } catch (error) {
+                console.error('Failed to start AR session:', error);
+                showStatus('AR not supported on this device');
+            }
         }
 
         // Load 3D model
-        async function loadModel(modelPath) {
+        async function loadModel(modelName) {
             const loader = new THREE.GLTFLoader();
             try {
-                const gltf = await loader.loadAsync(modelPath);
+                const gltf = await loader.loadAsync(`/models/${modelName}.glb`);
                 const model = gltf.scene;
-                model.scale.set(0.1, 0.1, 0.1); // Adjust scale as needed
+                model.scale.setScalar(0.5);
                 return model;
             } catch (error) {
                 console.error('Error loading model:', error);
+                showStatus('Failed to load model');
                 return null;
             }
         }
 
-        // Start AR session
-        async function startAR() {
-            try {
-                if (!navigator.xr) {
-                    alert('WebXR not supported on this device');
-                    return;
-                }
-
-                const session = await navigator.xr.requestSession('immersive-ar', {
-                    requiredFeatures: ['hit-test']
-                });
-
-                session.addEventListener('end', () => {
-                    xrSession = null;
-                    document.getElementById('startAR').style.display = 'block';
-                });
-
-                renderer.xr.setSession(session);
-                xrSession = session;
-                document.getElementById('startAR').style.display = 'none';
-                document.getElementById('placementIndicator').style.display = 'block';
+        // Handle model placement
+        function onSelect() {
+            if (currentModel && reticle.visible) {
+                const model = currentModel.clone();
+                model.position.setFromMatrixPosition(reticle.matrix);
+                scene.add(model);
+                placedObjects.push(model);
                 
-                session.addEventListener('select', placeObject);
-            } catch (error) {
-                console.error('Error starting AR session:', error);
-                alert('Failed to start AR session');
+                showStatus('Object placed! Use controls to adjust');
             }
         }
 
-        // Place object in real world
-        function placeObject(event) {
-            if (!currentModel || !isPlacing) return;
-
-            const position = new THREE.Vector3();
-            placementIndicator.getWorldPosition(position);
-            
-            const model = currentModel.clone();
-            model.position.copy(position);
-            scene.add(model);
-            
-            isPlacing = false;
-            placementIndicator.visible = false;
-        }
-
-        // Update placement indicator
-        function updatePlacementIndicator(frame) {
-            if (!isPlacing) return;
-
-            const referenceSpace = renderer.xr.getReferenceSpace();
-            const viewerPose = frame.getViewerPose(referenceSpace);
-
-            if (viewerPose) {
-                const hitTestSource = frame.createHitTestSource({
-                    space: viewerPose.transform
+        // Update reticle and hit testing
+        function updateHitTest(frame, referenceSpace) {
+            if (!hitTestSourceRequested) {
+                session.requestReferenceSpace('viewer').then((referenceSpace) => {
+                    session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+                        hitTestSource = source;
+                    });
                 });
+                hitTestSourceRequested = true;
+            }
 
-                if (hitTestSource) {
-                    const hitTestResults = frame.getHitTestResults(hitTestSource);
-                    if (hitTestResults.length > 0) {
-                        const hit = hitTestResults[0];
-                        const pose = hit.getPose(referenceSpace);
-                        
-                        placementIndicator.visible = true;
-                        placementIndicator.position.set(
-                            pose.transform.position.x,
-                            pose.transform.position.y,
-                            pose.transform.position.z
-                        );
-                    } else {
-                        placementIndicator.visible = false;
-                    }
+            if (hitTestSource) {
+                const hitTestResults = frame.getHitTestResults(hitTestSource);
+                if (hitTestResults.length) {
+                    const hit = hitTestResults[0];
+                    const pose = hit.getPose(referenceSpace);
+                    reticle.visible = true;
+                    reticle.matrix.fromArray(pose.transform.matrix);
+                } else {
+                    reticle.visible = false;
                 }
             }
         }
 
-        // Create menu items
-        function createMenu() {
-            const container = document.getElementById('menuContainer');
-            menuItems.forEach(item => {
-                const button = document.createElement('div');
-                button.className = 'menu-item';
-                button.textContent = item.name;
-                button.onclick = async () => {
-                    if (!xrSession) {
-                        alert('Please start AR first');
-                        return;
-                    }
-                    currentModel = await loadModel(item.modelPath);
-                    if (currentModel) {
-                        isPlacing = true;
-                        placementIndicator.visible = true;
-                    }
-                };
-                container.appendChild(button);
+        // Handle session end
+        function onSessionEnd() {
+            hitTestSourceRequested = false;
+            hitTestSource = null;
+            session = null;
+            showStatus('AR session ended');
+        }
+
+        // Show status message
+        function showStatus(message) {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = message;
+            statusElement.classList.add('visible');
+            setTimeout(() => {
+                statusElement.classList.remove('visible');
+            }, 2000);
+        }
+
+        // Initialize UI controls
+        function initControls() {
+            const moveButton = document.getElementById('moveButton');
+            const rotateButton = document.getElementById('rotateButton');
+            const scaleButton = document.getElementById('scaleButton');
+            const deleteButton = document.getElementById('deleteButton');
+
+            moveButton.addEventListener('click', () => {
+                if (transformControls.object) {
+                    transformControls.setMode('translate');
+                    setActiveControl(moveButton);
+                }
+            });
+
+            rotateButton.addEventListener('click', () => {
+                if (transformControls.object) {
+                    transformControls.setMode('rotate');
+                    setActiveControl(rotateButton);
+                }
+            });
+
+            scaleButton.addEventListener('click', () => {
+                if (transformControls.object) {
+                    transformControls.setMode('scale');
+                    setActiveControl(scaleButton);
+                }
+            });
+
+            deleteButton.addEventListener('click', () => {
+                if (transformControls.object) {
+                    const object = transformControls.object;
+                    scene.remove(object);
+                    transformControls.detach();
+                    placedObjects = placedObjects.filter(obj => obj !== object);
+                    showStatus('Object deleted');
+                }
             });
         }
 
-        // Initialize
-        initAR();
-        createMenu();
+        // Set active control button
+        function setActiveControl(activeButton) {
+            document.querySelectorAll('.control-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            activeButton.classList.add('active');
+        }
 
-        // Event listeners
-        document.getElementById('startAR').addEventListener('click', startAR);
+        // Initialize menu items
+        function initMenu() {
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', async () => {
+                    const modelName = item.dataset.model;
+                    showStatus('Loading model...');
+                    currentModel = await loadModel(modelName);
+                    if (currentModel) {
+                        showStatus('Tap to place object');
+                    }
+                });
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            renderer.setAnimationLoop((timestamp, frame) => {
+                if (frame) {
+                    const referenceSpace = renderer.xr.getReferenceSpace();
+                    if (referenceSpace) {
+                        updateHitTest(frame, referenceSpace);
+                    }
+                }
+                renderer.render(scene, camera);
+            });
+        }
+
+        // Handle window resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Animation loop
-        renderer.setAnimationLoop((timestamp, frame) => {
-            if (frame) {
-                updatePlacementIndicator(frame);
-            }
-            renderer.render(scene, camera);
+        // Initialize everything
+        init().then(() => {
+            initControls();
+            initMenu();
+            animate();
         });
     </script>
 </body>
